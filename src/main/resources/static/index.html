@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Personas App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
+          integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.12/dist/vue.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+
+<div class="image">
+    <div class="app" id="personas-app">
+        <div class="container">
+            <h3>Personas</h3>
+
+
+            <!--    Filtering-->
+            <div class="container" style="text-align:left">
+            <div style="display: inline-block">
+                <form v-on:submit.prevent="getPersonaByName" class="form-inline" style="align-content: center">
+                    <div class="form-group">
+                        <input v-model="nameFrom" type="text" class="form-control"
+                               placeholder="Por nombre" required>
+                    </div>
+                    <div class="submit">
+                        <input class="btn btn-primary" type="submit" value="Filtrar">
+                    </div>
+                    <div>
+                        <button v-if="isFiltering" class="btn btn-danger" v-on:click="exitFiltering">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div style="display: inline-block">
+                <form v-on:submit.prevent="getPersonaByTipoDocumento" class="form-inline" style="align-content: center">
+                    <div class="form-group">
+                        <select v-model="tipoDocFrom" class="custom-select" required>
+                            <option disabled value="null">Elija uno</option>
+                            <option v-for="tipoDocumento in tipoDocumentos" v-bind:key="tipoDocumento.valueOf()">{{ tipoDocumento.valueOf() }}</option>
+                        </select>
+                    </div>
+                    <div class="submit">
+                        <input class="btn btn-primary" type="submit" value="Filtrar">
+                    </div>
+                    <div>
+                        <button v-if="isFiltering" class="btn btn-danger" v-on:click="exitFiltering">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+            </div>
+
+            <br>
+
+
+            <table class="table">
+                <thead class="thead-dark">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Apellido</th>
+                    <th scope="col">Numero Documento</th>
+                    <th scope="col">Tipo Documento</th>
+                    <th scope="col">Fecha Nacimiento</th>
+                    <th scope="col">Action</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr v-for="persona in personas" v-bind:key="persona.id">
+                    <th scope="row">{{ persona.id }}</th>
+                    <td>{{ persona.nombre }}</td>
+                    <td>{{ persona.apellido }}</td>
+                    <td>{{ persona.numeroDocumento }}</td>
+                    <td>{{ persona.tipoDocumento }}</td>
+                    <td>{{ persona.fechaNacimiento }}</td>
+                    <td>
+                        <button class="btn btn-primary" v-on:click="setPersonaForEdit(persona)">Modificar</button>
+                        <button class="btn btn-danger" v-on:click.prevent="deletePersona(persona.id)">Borrar</button>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+
+            <!--    ADD-->
+            <div v-if="!isEditing" class="container p-3 my-3 bg-dark text-white" style="display: inline-block">
+                <form v-on:submit.prevent="postPersona" class="form-inline">
+                    <div class="form-group">
+                        <input v-model="persona.id" type="text" class="form-control" style="max-width: 110px;" placeholder="id" required>
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.nombre" type="text" class="form-control" placeholder="nombre"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.apellido" type="text" class="form-control" placeholder="apellido"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.numeroDocumento" type="number" class="form-control" style="max-width: 160px;" placeholder="n° de documento"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <select v-model="persona.tipoDocumento" class="custom-select" required>
+                            <option disabled value="null">Elija uno</option>
+                            <option v-for="tipoDocumento in tipoDocumentos" v-bind:key="tipoDocumento.valueOf()">{{ tipoDocumento.valueOf() }}</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <input v-model="persona.fechaNacimiento" type="date" required class="form-control">
+                    </div>
+
+                    <br>
+                    <br>
+                    <div class="submit">
+                        <input class="btn btn-primary" type="submit" value="Nueva Persona">
+                    </div>
+                </form>
+            </div>
+
+            <!--    EDIT-->
+            <div v-else-if="isEditing" class="container p-3 my-3 bg-dark text-white" style="display: inline-block">
+                <form v-on:submit.prevent="editPersona" class="form-inline">
+                    <div class="form-group">
+                        <input v-model="persona.id" type="text" class="form-control" style="max-width: 110px;" disabled="disabled" size="16">
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.nombre" type="text" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.apellido" type="text" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <input v-model="persona.numeroDocumento" type="text" class="form-control" style="max-width: 160px;">
+                    </div>
+                    <div class="form-group">
+                        <select v-model="persona.tipoDocumento" class="custom-select">
+                            <option v-for="tipoDocumento in tipoDocumentos" v-bind:key="tipoDocumento">{{ tipoDocumento.valueOf() }}</option>
+                        </select>
+                    </div>
+                    <div class="submit">
+                        <input class="btn btn-primary" type="submit" value="Guardar">
+                    </div>
+                    <div>
+                        <button class="btn btn-danger" v-on:click="exitEditMode">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
+
+
+<script>
+
+
+    const apiURL = "/personas";
+
+
+    new Vue({
+        el: "#personas-app",
+        data() {
+            return {
+
+
+                personas: null,
+                tipoDocumentos: null,
+                isEditing: false,
+                isFiltering: false,
+                nameFrom: null,
+                tipoDocFrom: null,
+                persona: {
+                    id: null,
+                    nombre: null,
+                    apellido: null,
+                    tipoDocumento: null,
+                    numeroDocumento: null,
+                    fechaNacimiento: null,
+                }
+            }
+        },
+        mounted() {
+            this.getPersonas();
+            this.getTipoDocumentos();
+        },
+        methods: {
+            getPersonas: function () {
+                axios.get(apiURL).then((res) => {
+                    this.personas = res.data;
+                });
+            },
+
+            getPersonaByName: function () {
+                axios.get(apiURL + "/names?name=" + this.nameFrom).then((res) => {
+                    this.personas = res.data;
+                    this.isFiltering = true;
+                });
+            },
+
+             getPersonaByTipoDocumento: function () {
+                axios.get(apiURL + "/kindDocument?tipoDocumento=" + this.tipoDocFrom).then((res) => {
+                    this.personas = res.data;
+                    this.isFiltering = true;
+                });
+            },
+
+
+            deletePersona: function (id) {
+                axios.delete(apiURL + "/" + id).then((res) => {
+                    this.getPersonas();
+                });
+            },
+
+            getTipoDocumentos: function () {
+                axios.get(apiURL + "/getTiposDocumentos").then((res) => {
+                    this.tipoDocumentos = res.data.valueOf();
+                });
+            },
+
+
+            postPersona: function () {
+                axios
+                    .post(apiURL, {
+                        "id": this.persona.id,
+                        "nombre": this.persona.nombre,
+                        "apellido": this.persona.apellido,
+                        "tipoDocumento": this.persona.tipoDocumento,
+                        "numeroDocumento": this.persona.numeroDocumento,
+                        "fechaNacimiento": this.persona.fechaNacimiento,
+                    }).then((res) => {
+                    this.getPersonas();
+                    this.persona.id = null;
+                    this.persona.nombre = null;
+                    this.persona.apellido = null;
+                    this.persona.tipoDocumento = null;
+                    this.persona.numeroDocumento = null;
+                    this.persona.fechaNacimiento = null;
+                });
+            },
+
+            setPersonaForEdit: function (persona) {
+                this.isEditing = true;
+                this.persona = persona;
+
+            },
+
+            exitEditMode: function () {
+                this.isEditing = false;
+                this.persona.id = null;
+                this.persona.nombre = null;
+                this.persona.apellido = null;
+                this.persona.tipoDocumento = null;
+                this.persona.numeroDocumento = null;
+                this.persona.fechaNacimiento = null;
+                this.getPersonas();
+            },
+
+            exitFiltering: function () {
+                this.isFiltering = false;
+                this.nameFrom = null;
+                this.tipoDocFrom = null;
+                this.getPersonas();
+            },
+
+            editPersona: function () {
+                axios
+                    .put(apiURL, {
+                        "id": this.persona.id,
+                        "nombre": this.persona.nombre,
+                        "apellido": this.persona.apellido,
+                        "tipoDocumento": this.persona.tipoDocumento,
+                        "numeroDocumento": this.persona.numeroDocumento,
+                        "fechaNacimiento": this.persona.fechaNacimiento,
+                    }).then((res) => {
+                    this.getPersonas();
+                    this.persona.id = null;
+                    this.persona.nombre = null;
+                    this.persona.apellido = null;
+                    this.persona.tipoDocumento = null;
+                    this.persona.numeroDocumento = null;
+                    this.persona.fechaNacimiento = null;
+                    this.isEditing = false;
+                });
+            },
+        },
+    });
+
+
+</script>
+
+
+<style>
+    .app {
+        font-family: Avenir, Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        color: #2c3e50;
+    }
+
+    .image {
+        background-image: linear-gradient(rgba(255, 255, 255, 0.0), rgba(255, 255, 255, 1.0)), url("https://w0.peakpx.com/wallpaper/132/799/HD-wallpaper-pastel-metropolis-purple-cityscape-pastel-colors-abstract-pink-thumbnail.jpg");
+        background-color: #cccccc;
+        height: 800px;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        position: relative;
+    }
+
+    h3 {
+        margin-bottom: 5%;
+    }
+
+    .btn-primary,
+    .btn-danger {
+        align-items: center;
+        margin-left: 2%;
+        margin-right: 2%;
+    }
+
+    .form-group {
+        margin: 3px;
+        width: auto;
+    }
+
+    .btn-danger {
+        margin-left: 3px;
+        margin-right: 3px;
+    }
+</style>
